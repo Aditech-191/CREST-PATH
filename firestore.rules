@@ -1,0 +1,207 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HARDENED PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidStringList(val, maxItems) {
+      return val is list &&
+             val.size() <= maxItems &&
+             (val.size() == 0 || val[0] is string);
+    }
+
+    // --- ENTITY VALIDATION HELPERS ---
+    function isValidStudentProfile(data, userId) {
+      return data.userId == userId &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+             data.university is string && data.university.size() >= 1 && data.university.size() <= 120 &&
+             data.program is string && data.program.size() >= 1 && data.program.size() <= 120 &&
+             data.yearOfStudy is int && data.yearOfStudy >= 1 && data.yearOfStudy <= 7 &&
+             (!('gpa' in data) || (data.gpa is string && data.gpa.size() <= 20)) &&
+             isValidStringList(data.skills, 25) &&
+             isValidStringList(data.interests, 15) &&
+             data.activeDemoProfileId is string && data.activeDemoProfileId.size() <= 40 &&
+             data.activeDemoProfileId in ['', 'demo_amina', 'demo_daniel', 'demo_grace'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidApplicationTracker(data, userId, opportunityId) {
+      return data.userId == userId &&
+             data.opportunityId == opportunityId &&
+             data.saved is bool &&
+             data.status is string &&
+             data.status in ['NONE', 'SAVED', 'IN_PROGRESS', 'APPLIED', 'INTERVIEW', 'ACCEPTED'] &&
+             data.notes is string && data.notes.size() <= 1000 &&
+             (!('appliedAtIso' in data) || (data.appliedAtIso is string && data.appliedAtIso.size() <= 40)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCustomOpportunity(data, userId) {
+      return data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+             data.organization is string && data.organization.size() >= 1 && data.organization.size() <= 120 &&
+             data.category is string && data.category in ['INTERNSHIP', 'SCHOLARSHIP', 'FELLOWSHIP'] &&
+             data.location is string && data.location.size() <= 120 &&
+             data.deadlineText is string && data.deadlineText.size() <= 80 &&
+             data.deadlineIso is string && data.deadlineIso.size() <= 40 &&
+             data.stipendOrValue is string && data.stipendOrValue.size() <= 120 &&
+             data.eligibility is string && data.eligibility.size() <= 600 &&
+             isValidStringList(data.requirements, 20) &&
+             isValidStringList(data.requiredSkills, 20) &&
+             data.officialUrl is string && data.officialUrl.size() <= 300 &&
+             data.summary is string && data.summary.size() <= 1000 &&
+             isValidStringList(data.verificationWarnings, 10) &&
+             data.verified is bool && data.verified == false &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // --- USER PROFILE COLLECTION ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'fullName', 'university', 'program',
+                         'yearOfStudy', 'skills', 'interests',
+                         'activeDemoProfileId', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'fullName', 'university', 'program',
+                         'yearOfStudy', 'gpa', 'skills', 'interests',
+                         'activeDemoProfileId', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidStudentProfile(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidStudentProfile(incoming(), userId) &&
+                       isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action: Update student profile fields
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'fullName', 'university', 'program', 'yearOfStudy',
+                           'gpa', 'skills', 'interests', 'updatedAt'
+                         ]) ||
+                         // Action: Switch demo profile preset
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'activeDemoProfileId', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // --- APPLICATION TRACKER SUBCOLLECTION ---
+      match /applications/{opportunityId} {
+        allow get: if isOwner(userId) && isValidId(opportunityId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(opportunityId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'opportunityId', 'saved', 'status',
+                           'notes', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'opportunityId', 'saved', 'status',
+                           'notes', 'appliedAtIso', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidApplicationTracker(incoming(), userId, opportunityId);
+
+        allow update: if isSignedIn() &&
+                         isValidApplicationTracker(incoming(), userId, opportunityId) &&
+                         isOwner(userId) &&
+                         isValidId(opportunityId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().opportunityId == existing().opportunityId &&
+                         incoming().createdAt == existing().createdAt && (
+                           // Action: Toggle bookmark saved state
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'saved', 'status', 'updatedAt'
+                           ]) ||
+                           // Action: Update pipeline status, applied date, or notes
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'saved', 'status', 'notes', 'appliedAtIso', 'updatedAt'
+                           ])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(opportunityId);
+      }
+
+      // --- CUSTOM IMPORTED OPPORTUNITIES SUBCOLLECTION ---
+      match /custom_opportunities/{opportunityId} {
+        allow get: if isOwner(userId) && isValidId(opportunityId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(opportunityId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'organization', 'category',
+                           'location', 'deadlineText', 'deadlineIso',
+                           'stipendOrValue', 'eligibility', 'requirements',
+                           'requiredSkills', 'officialUrl', 'summary',
+                           'verificationWarnings', 'verified',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'organization', 'category',
+                           'location', 'deadlineText', 'deadlineIso',
+                           'stipendOrValue', 'eligibility', 'requirements',
+                           'requiredSkills', 'officialUrl', 'summary',
+                           'verificationWarnings', 'verified',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidCustomOpportunity(incoming(), userId);
+
+        allow update: if isSignedIn() &&
+                         isValidCustomOpportunity(incoming(), userId) &&
+                         isOwner(userId) &&
+                         isValidId(opportunityId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().verified == false && (
+                           // Action: Edit imported opportunity fields
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'title', 'organization', 'category', 'location',
+                             'deadlineText', 'deadlineIso', 'stipendOrValue',
+                             'eligibility', 'requirements', 'requiredSkills',
+                             'officialUrl', 'summary', 'verificationWarnings',
+                             'updatedAt'
+                           ])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(opportunityId);
+      }
+    }
+  }
+}

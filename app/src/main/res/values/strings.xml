@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">CrestPath</string>
+    <string name="auth_headline">Verified paths for Ugandan scholars</string>
+    <string name="auth_subtitle">Discover vetted internships and scholarships, turn messy WhatsApp forwards into structured cards, and get honest AI match guidance.</string>
+    <string name="auth_sign_in_google">Sign in with Google</string>
+    <string name="auth_privacy_note">Protected by Google Sign-In and per-user cloud security rules. Your profile, bookmarks, and notes stay private to your account.</string>
+    <string name="nav_discover">Discover</string>
+    <string name="nav_tracker">Tracker</string>
+    <string name="nav_parse">Parse Post</string>
+    <string name="nav_advisor">Advisor</string>
+    <string name="nav_profile">Profile</string>
+    <string name="demo_mode_banner">Demo Mode Active</string>
+    <string name="verified_badge">Verified</string>
+    <string name="unverified_badge">Unverified Forward</string>
+</resources>

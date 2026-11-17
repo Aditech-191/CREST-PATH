@@ -1,0 +1,6 @@
+{
+  "name": "CrestPath",
+  "description": "AI-guided career hub for Ugandan university students to discover, parse, and track verified internships and scholarships.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

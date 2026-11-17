@@ -1,0 +1,248 @@
+{
+  "entities": {
+    "StudentProfile": {
+      "title": "StudentProfile",
+      "description": "Authenticated Ugandan university student career profile and demo mode selection.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Student display name."
+        },
+        "university": {
+          "type": "string",
+          "description": "Ugandan university name (e.g., Makerere University)."
+        },
+        "program": {
+          "type": "string",
+          "description": "Degree program or major."
+        },
+        "yearOfStudy": {
+          "type": "integer",
+          "description": "Current academic year (1 to 7)."
+        },
+        "gpa": {
+          "type": "string",
+          "description": "Optional cumulative GPA string."
+        },
+        "skills": {
+          "type": "array",
+          "description": "Bounded list of up to 25 student skills."
+        },
+        "interests": {
+          "type": "array",
+          "description": "Bounded list of up to 15 career interest tags."
+        },
+        "activeDemoProfileId": {
+          "type": "string",
+          "description": "Empty string for personal profile, or demo persona ID (demo_amina, demo_daniel, demo_grace)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "university",
+        "program",
+        "yearOfStudy",
+        "skills",
+        "interests",
+        "activeDemoProfileId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ApplicationTracker": {
+      "title": "ApplicationTracker",
+      "description": "Tracks saved state, application pipeline status, and personal notes for an opportunity.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "opportunityId": {
+          "type": "string",
+          "description": "Identifier of the curated or imported opportunity."
+        },
+        "saved": {
+          "type": "boolean",
+          "description": "Whether the student bookmarked this opportunity."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "SAVED",
+            "IN_PROGRESS",
+            "APPLIED",
+            "INTERVIEW",
+            "ACCEPTED"
+          ],
+          "description": "Current tracking stage."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Personal application reminders or checklist notes."
+        },
+        "appliedAtIso": {
+          "type": "string",
+          "description": "Optional ISO date string recording when the student marked it as applied."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "opportunityId",
+        "saved",
+        "status",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CustomOpportunity": {
+      "title": "CustomOpportunity",
+      "description": "Structured opportunity card parsed by AI from a WhatsApp forward or LinkedIn post.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Opportunity title."
+        },
+        "organization": {
+          "type": "string",
+          "description": "Host organization or sponsor."
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "INTERNSHIP",
+            "SCHOLARSHIP",
+            "FELLOWSHIP"
+          ],
+          "description": "Opportunity category."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location or remote/hybrid designation."
+        },
+        "deadlineText": {
+          "type": "string",
+          "description": "Human-readable deadline extracted from source text."
+        },
+        "deadlineIso": {
+          "type": "string",
+          "description": "ISO date YYYY-MM-DD if explicitly known, otherwise empty string."
+        },
+        "stipendOrValue": {
+          "type": "string",
+          "description": "Compensation or scholarship coverage if stated."
+        },
+        "eligibility": {
+          "type": "string",
+          "description": "Eligibility summary."
+        },
+        "requirements": {
+          "type": "array",
+          "description": "Bounded list of up to 20 application requirements."
+        },
+        "requiredSkills": {
+          "type": "array",
+          "description": "Bounded list of up to 20 relevant skills."
+        },
+        "officialUrl": {
+          "type": "string",
+          "description": "Official application link only if explicitly present in source text."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Short structured summary."
+        },
+        "verificationWarnings": {
+          "type": "array",
+          "description": "Safety warnings flagged by the AI parser."
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "Always false for user-imported forwards to prevent spoofing verified catalog items."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "organization",
+        "category",
+        "location",
+        "deadlineText",
+        "deadlineIso",
+        "stipendOrValue",
+        "eligibility",
+        "requirements",
+        "requiredSkills",
+        "officialUrl",
+        "summary",
+        "verificationWarnings",
+        "verified",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/StudentProfile"
+      },
+      "description": "Private student profile document scoped to the authenticated user."
+    },
+    "/users/{userId}/applications/{opportunityId}": {
+      "schema": {
+        "$ref": "#/entities/ApplicationTracker"
+      },
+      "description": "Per-user saved bookmarks, application status, and notes keyed by opportunityId."
+    },
+    "/users/{userId}/custom_opportunities/{opportunityId}": {
+      "schema": {
+        "$ref": "#/entities/CustomOpportunity"
+      },
+      "description": "User-imported opportunities structured from WhatsApp or LinkedIn forwards."
+    }
+  }
+}
